@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>LA ZONA</title>
+<meta name="theme-color" content="#060914">
+<meta name="description" content="LA ZONA">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LA ZONA">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header>
+  <span class="brand">LA ZONA</span>
+  <div class="players" id="players" aria-live="polite"></div>
+</header>
+<main>
+  <p class="clue" id="clue"></p>
+  <div class="stage">
+    <svg id="dial" viewBox="-14 12 428 236" role="slider" aria-label="Dial: coloca la pista" aria-valuemin="0" aria-valuemax="100" tabindex="0"></svg>
+  </div>
+  <div class="result">
+    <span class="lg lg-target" aria-hidden="true">Objetivo</span>
+    <p class="verdict" id="verdict" aria-live="polite"></p>
+    <span class="lg lg-guess" aria-hidden="true">Tu respuesta</span>
+  </div>
+  <button class="btn" id="action">Fijar respuesta</button>
+  <p class="hint" id="hint"></p>
+</main>
+<script src="js/spectra.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
