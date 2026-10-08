@@ -1,12 +1,30 @@
 (() => {
 const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
 const NS = "http://www.w3.org/2000/svg", CX = 200, CY = 220, R = 180;
-// Semiancho de la zona central (en % de la ruleta). Antes 2.5; más pequeño = más difícil.
-const W = 1.75;
-const BANDS = [[W, 2, "z2", -4 * W], [W, 3, "z3", -2 * W], [W, 4, "z4", 0], [W, 3, "z3", 2 * W], [W, 2, "z2", 4 * W]];
-const GOAL = 1000000, DEFAULT_NAMES = ["Jugador 1", "Jugador 2"];
+
+// ---------- Ajustes (se guardan en el dispositivo) ----------
+const PREF_KEY = "lazona:prefs";
+// Semiancho de la zona central (en % de la ruleta) según la dificultad: más pequeño = más difícil.
+const WIDTHS = { easy: 2.5, normal: 1.75, hard: 1.25 };
+const DEFAULTS = { theme: "dark", difficulty: "normal", goal: 10, hints: true, sound: true, vibrate: true, reduceMotion: false };
+let P = Object.assign({}, DEFAULTS);
+try { Object.assign(P, JSON.parse(localStorage.getItem(PREF_KEY) || "{}")); } catch {}
+function sanitizePrefs() {
+  if (!["light", "dark", "auto"].includes(P.theme)) P.theme = DEFAULTS.theme;
+  if (!["easy", "normal", "hard"].includes(P.difficulty)) P.difficulty = DEFAULTS.difficulty;
+  P.goal = [10, 15, 0].includes(Number(P.goal)) ? Number(P.goal) : DEFAULTS.goal;   // 0 = infinito
+  ["hints", "sound", "vibrate", "reduceMotion"].forEach(k => { if (typeof P[k] !== "boolean") P[k] = DEFAULTS[k]; });
+}
+sanitizePrefs();
+const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(P)); } catch {} };
+
+// W es el ancho de zona de la ronda en curso; cambia al empezar cada ronda.
+let W = WIDTHS[P.difficulty];
+const bandsFor = w => [[w, 2, "z2", -4 * w], [w, 3, "z3", -2 * w], [w, 4, "z4", 0], [w, 3, "z3", 2 * w], [w, 2, "z2", 4 * w]];
+const DEFAULT_NAMES = ["Jugador 1", "Jugador 2"];
 let NAMES = DEFAULT_NAMES.slice();
-const S = { phase: "wait", guess: 50, target: 50, scores: [0, 0], psychic: 0, last: -1, card: null };
+const S = { phase: "wait", guess: 50, target: 50, scores: [0, 0], psychic: 0, last: -1, card: null, over: false };
 const dial = $("#dial");
 
 const pt = (v, r) => { const a = Math.PI * (1 - v / 100); return [CX + r * Math.cos(a), CY - r * Math.sin(a)]; };
@@ -19,12 +37,12 @@ function build() {
     <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3d58a"/><stop offset="1" stop-color="#d6a443"/></linearGradient>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity=".4"/></filter></defs>`;
   el("path", { d: wedge(0, 100, R + 9), fill: "url(#brass)" }, dial);
-  el("path", { d: wedge(0, 100), fill: "#0d1330" }, dial);
+  el("path", { d: wedge(0, 100), class: "dial-face" }, dial);
 
   // Escudo que tapa la zona hasta que se revela la posición. Se crea antes de las zonas
   // para que, al ocultarse, nunca pueda quedar por encima de ellas.
   const sh = el("g", { id: "shield" }, dial);
-  el("path", { d: wedge(0, 100), fill: "#161d4a" }, sh);
+  el("path", { d: wedge(0, 100), class: "dial-shield" }, sh);
   el("text", { x: CX, y: 135, class: "q" }, sh).textContent = "?";
 
   // Zona de puntuación: 2 - 3 - 4 - 3 - 2.
@@ -32,11 +50,11 @@ function build() {
   // la franja continúa por debajo del borde, igual que en una ruleta física.
   // Después dibujamos el aro exterior por encima para ocultar la parte que queda fuera.
   const z = el("g", { id: "zones" }, dial);
-  let bands = BANDS;
+  let bands = bandsFor(W);
   if (S.target <= 5 * W) {
-    bands = BANDS.map(([w, score, c, o]) => [w, score, c, Math.abs(o)]);
+    bands = bands.map(([w, score, c, o]) => [w, score, c, Math.abs(o)]);
   } else if (S.target >= 100 - 5 * W) {
-    bands = BANDS.map(([w, score, c, o]) => [w, score, c, -Math.abs(o)]);
+    bands = bands.map(([w, score, c, o]) => [w, score, c, -Math.abs(o)]);
   }
   bands.forEach(([w, score, c, o]) => {
     const center = S.target + o;
@@ -86,7 +104,7 @@ function build() {
   el("circle", { class: "marker-dot", r: 6 }, guessMarker);
   el("text", { class: "marker-label" }, guessMarker).textContent = "TU RESPUESTA";
 
-  el("circle", { cx: CX, cy: CY, r: 15, fill: "url(#brass)", stroke: "#0d1330", "stroke-width": 3 }, dial);
+  el("circle", { cx: CX, cy: CY, r: 15, fill: "url(#brass)", class: "dial-hub", "stroke-width": 3 }, dial);
 
   // Extremos del espectro (la carta de la ronda)
   if (S.card) {
@@ -164,6 +182,8 @@ dial.addEventListener("pointermove", e => drag && fromPointer(e));
 const end = () => { drag = false; dial.classList.remove("drag"); };
 dial.addEventListener("pointerup", end); dial.addEventListener("pointercancel", end);
 addEventListener("keydown", e => {
+  // Con el panel de ajustes abierto, el juego no reacciona al teclado.
+  if (panelOpen) { onPanelKey(e); return; }
   if (S.phase === "guess") {
     const d = { ArrowLeft: -1.5, ArrowDown: -1.5, ArrowRight: 1.5, ArrowUp: 1.5 }[e.key];
     if (d) { e.preventDefault(); S.guess = clamp(S.guess + (e.shiftKey ? d * 4 : d)); paint(); return; }
@@ -180,14 +200,17 @@ function players() {
     return `<div class="pl p${i}${(S.phase !== "reveal" && i === S.psychic) || (S.phase === "reveal" && i !== S.psychic) ? " on" : ""}"><span>${n}<small>${role}</small></span><b>${S.scores[i]}</b></div>`;
   }).join("");
 }
+let curHint = "";
+const paintHint = () => { $("#hint").textContent = P.hints ? curHint : ""; };
 function ui(title, sub, btn, hint = "") {
-  $c.innerHTML = `<small>${sub}</small>${title}`; $b.textContent = btn; $("#hint").textContent = hint;
+  $c.innerHTML = `<small>${sub}</small>${title}`; $b.textContent = btn; curHint = hint; paintHint();
   $c.style.animation = "none"; void $c.offsetWidth; $c.style.animation = "";
   players(); paint();
 }
 function newRound() {
   S.psychic = S.last < 0 ? Math.floor(Math.random() * 2) : 1 - S.last; S.last = S.psychic;
   S.card = CAT.slice();
+  W = WIDTHS[P.difficulty];   // la dificultad elegida se aplica al empezar cada ronda
   S.target = Math.random() * 100; S.guess = 50; S.phase = "wait";
   $v.textContent = ""; $v.className = "verdict";
   build();
@@ -196,25 +219,177 @@ function newRound() {
 function act() {
   const g = 1 - S.psychic;
   if (S.phase === "wait") { S.phase = "psychic"; ui("Memoriza la posición", `${NAMES[S.psychic]}, solo tú miras · piensa una pista`, `Ocultar y pasar a ${NAMES[g]}`, "Di tu pista en voz alta, sin números ni posiciones"); }
-  else if (S.phase === "psychic") { S.phase = "guess"; ui(`${NAMES[g]}, ¿dónde está?`, `Pista de ${NAMES[S.psychic]}`, "Fijar respuesta", "Arrastra la aguja o usa las flechas · Enter para confirmar"); }
+  else if (S.phase === "psychic") { S.phase = "guess"; ui(`${NAMES[g]}, ¿dónde está?`, `Pista de ${NAMES[S.psychic]}`, "Fijar respuesta", COARSE ? "Toca o arrastra la ruleta · Pulsa el botón para confirmar" : "Arrastra la aguja o usa las flechas · Enter para confirmar"); }
   else if (S.phase === "guess") reveal();
-  else if (S.scores.some(s => s >= GOAL) && S.scores[0] !== S.scores[1]) { S.scores = [0, 0]; S.last = -1; newRound(); }
+  else if (S.over) { S.over = false; S.scores = [0, 0]; S.last = -1; newRound(); }
   else newRound();
 }
 function reveal() {
   const g = 1 - S.psychic, d = Math.abs(S.guess - S.target);
   const pts = d <= W ? 4 : d <= 3 * W ? 3 : d <= 5 * W ? 2 : 0;
   S.scores[g] += pts; S.phase = "reveal";
-  const [a, b] = S.scores, won = Math.max(a, b) >= GOAL && a !== b ? (a > b ? 0 : 1) : -1;
+  const [a, b] = S.scores, won = P.goal > 0 && Math.max(a, b) >= P.goal && a !== b ? (a > b ? 0 : 1) : -1;
+  S.over = won >= 0;
+  feedback(won >= 0 ? "win" : pts);
   $v.textContent = won >= 0 ? `${NAMES[won]} gana la partida` : ["Lejos. Sin puntos.", "", "Casi: +2 puntos", "Muy cerca: +3 puntos", "¡Diana! +4 puntos"][pts];
   $v.className = "verdict show p" + (won >= 0 ? 4 : pts);
   ui(won >= 0 ? "Fin de la partida" : "Resultado", `${NAMES[g]} suma ${pts}`, won >= 0 ? "Nueva partida" : "Siguiente ronda");
 }
 $b.addEventListener("click", act);
 
+// ---------- Aplicar ajustes: tema, animaciones, sonido y vibración ----------
+const COARSE = matchMedia("(pointer: coarse)").matches;   // pantalla táctil
+const mqLight = matchMedia("(prefers-color-scheme: light)");
+
+function applyTheme() {
+  const t = P.theme === "auto" ? (mqLight.matches ? "light" : "dark") : P.theme;
+  document.documentElement.setAttribute("data-theme", t);
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute("content", t === "light" ? "#f3eee2" : "#060914");
+}
+function applyPrefs() {
+  applyTheme();
+  if (P.reduceMotion) document.documentElement.setAttribute("data-reduce", "1");
+  else document.documentElement.removeAttribute("data-reduce");
+  paintHint();
+}
+const onSchemeChange = () => { if (P.theme === "auto") applyTheme(); };
+if (mqLight.addEventListener) mqLight.addEventListener("change", onSchemeChange); else mqLight.addListener(onSchemeChange);
+
+let AC = null;
+function tone(seq) {
+  if (!P.sound) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === "suspended") AC.resume();
+    const t0 = AC.currentTime;
+    seq.forEach(([f, start, dur]) => {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = "sine"; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t0 + start);
+      g.gain.exponentialRampToValueAtTime(0.16, t0 + start + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + start + dur);
+      o.connect(g); g.connect(AC.destination);
+      o.start(t0 + start); o.stop(t0 + start + dur + 0.05);
+    });
+  } catch {}
+}
+function buzz(pattern) {
+  if (!P.vibrate || !("vibrate" in navigator)) return;
+  try { navigator.vibrate(pattern); } catch {}
+}
+// Aviso al revelar: "win" o los puntos conseguidos (0, 2, 3, 4).
+function feedback(kind) {
+  const snd = {
+    win: [[523, 0, .12], [659, .12, .12], [784, .24, .12], [1047, .36, .35]],
+    4: [[523, 0, .12], [659, .1, .12], [784, .2, .24]],
+    3: [[523, 0, .12], [659, .1, .22]],
+    2: [[523, 0, .2]],
+    0: [[220, 0, .28]]
+  }[kind];
+  const vib = { win: [60, 40, 60, 40, 140], 4: [50, 30, 50], 3: [40], 2: [25], 0: [15] }[kind];
+  if (snd) tone(snd);
+  if (vib) buzz(vib);
+}
+
+// ---------- Panel de ajustes (superpuesto) ----------
+const $ov = $("#overlay"), $sheet = $("#settingsPanel"), $gear = $("#gear"), $head = $(".sheet-head");
+let panelOpen = false, ignorePop = false, lastFocus = null, hideTimer = 0;
+
+function syncPanel() {
+  $$('input[name="theme"]').forEach(i => { i.checked = i.value === P.theme; });
+  $$('input[name="difficulty"]').forEach(i => { i.checked = i.value === P.difficulty; });
+  $$('input[name="goal"]').forEach(i => { i.checked = Number(i.value) === P.goal; });
+  $("#optHints").checked = P.hints;
+  $("#optSound").checked = P.sound;
+  $("#optVibrate").checked = P.vibrate;
+  $("#optMotion").checked = P.reduceMotion;
+  $("#rowVibrate").hidden = !("vibrate" in navigator);   // p. ej. iPhone no soporta vibración
+}
+function openPanel() {
+  if (panelOpen) return;
+  panelOpen = true; lastFocus = document.activeElement;
+  clearTimeout(hideTimer);
+  syncPanel();
+  $ov.hidden = false;
+  void $ov.offsetWidth;                       // fuerza el estado inicial para que la animación se vea
+  $ov.classList.add("open");
+  document.body.classList.add("modal-open");
+  $gear.setAttribute("aria-expanded", "true");
+  history.pushState({ modal: true }, "");     // el botón/gesto "atrás" del móvil cierra el panel
+  $sheet.focus({ preventScroll: true });
+}
+function closePanel(fromPop) {
+  if (!panelOpen) return;
+  panelOpen = false;
+  $ov.classList.remove("open");
+  document.body.classList.remove("modal-open");
+  $gear.setAttribute("aria-expanded", "false");
+  hideTimer = setTimeout(() => { if (!panelOpen) $ov.hidden = true; }, 260);
+  if (!fromPop && history.state && history.state.modal) { ignorePop = true; history.back(); }
+  if (lastFocus && lastFocus.isConnected && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+}
+function onPanelKey(e) {
+  if (e.key === "Escape") { e.preventDefault(); closePanel(); return; }
+  if (e.key !== "Tab") return;
+  // Mantiene el foco dentro del panel mientras está abierto.
+  const first = $("#sheetClose"), last = $("#resetPrefs");
+  if (e.shiftKey && (document.activeElement === first || document.activeElement === $sheet)) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+
+$gear.addEventListener("click", openPanel);
+$("#sheetClose").addEventListener("click", () => closePanel());
+let downOnBackdrop = false;
+$ov.addEventListener("pointerdown", e => { downOnBackdrop = e.target === $ov; });
+$ov.addEventListener("click", e => { if (downOnBackdrop && e.target === $ov) closePanel(); });
+
+// Deslizar hacia abajo la cabecera cierra el panel (solo en móvil, donde es una hoja inferior).
+let sheetY0 = null, sheetDY = 0;
+const isSheet = () => matchMedia("(max-width: 640px)").matches;
+$head.addEventListener("pointerdown", e => {
+  if (e.target.closest("button") || !isSheet()) return;
+  sheetY0 = e.clientY; sheetDY = 0;
+  $head.setPointerCapture(e.pointerId);
+  $sheet.style.transition = "none";
+});
+$head.addEventListener("pointermove", e => {
+  if (sheetY0 === null) return;
+  sheetDY = Math.max(0, e.clientY - sheetY0);
+  $sheet.style.transform = `translateY(${sheetDY}px)`;
+});
+const endSheetDrag = () => {
+  if (sheetY0 === null) return;
+  const close = sheetDY > 80;
+  sheetY0 = null; sheetDY = 0;
+  $sheet.style.transition = ""; $sheet.style.transform = "";
+  if (close) closePanel();
+};
+$head.addEventListener("pointerup", endSheetDrag);
+$head.addEventListener("pointercancel", endSheetDrag);
+
+$sheet.addEventListener("change", e => {
+  const t = e.target;
+  if (t.name === "theme") P.theme = t.value;
+  else if (t.name === "difficulty") P.difficulty = t.value;
+  else if (t.name === "goal") P.goal = Number(t.value);
+  else if (t.id === "optHints") P.hints = t.checked;
+  else if (t.id === "optSound") { P.sound = t.checked; tone([[660, 0, .09]]); }
+  else if (t.id === "optVibrate") { P.vibrate = t.checked; buzz(30); }
+  else if (t.id === "optMotion") P.reduceMotion = t.checked;
+  else return;
+  sanitizePrefs(); applyPrefs(); savePrefs();
+});
+$("#resetPrefs").addEventListener("click", () => {
+  P = Object.assign({}, DEFAULTS);
+  applyPrefs(); savePrefs(); syncPanel();
+});
+
+applyPrefs();
+
 // ---------- Pantalla de inicio: nombres y categoría escritos a mano ----------
 const KEY = "lazona:ajustes";
-const $form = $("#setupForm"), $n = [$("#name0"), $("#name1")], $cat = [$("#catL"), $("#catR")], $set = $("#settings");
+const $form = $("#setupForm"), $n = [$("#name0"), $("#name1")], $cat = [$("#catL"), $("#catR")];
 let CAT = ["", ""];
 
 const clean = (s, max = 14) => s.replace(/[<>&"'`]/g, "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -224,10 +399,9 @@ try { localStorage.removeItem(KEY); } catch {}  // limpia ajustes guardados por 
 function showSetup() {
   NAMES = DEFAULT_NAMES.slice();
   CAT = ["", ""];
-  S.scores = [0, 0]; S.last = -1; S.phase = "wait";
+  S.scores = [0, 0]; S.last = -1; S.phase = "wait"; S.over = false;
   $n.forEach(inp => { inp.value = ""; });
   $cat.forEach(inp => { inp.value = ""; });
-  $set.textContent = "⚙ Ajustes";
   document.body.classList.add("in-setup");
   scrollTo(0, 0);
   if (matchMedia("(pointer: fine)").matches) $n[0].focus();
@@ -242,8 +416,7 @@ $form.addEventListener("submit", e => {
   if (!l || !r) { (l ? $cat[1] : $cat[0]).focus(); return; }
   NAMES = [a, b];
   CAT = [l, r];
-  S.scores = [0, 0]; S.last = -1;
-  $set.textContent = `⚙ Ajustes · ${l} – ${r}`;
+  S.scores = [0, 0]; S.last = -1; S.over = false;
   document.body.classList.remove("in-setup");
   history.pushState({ game: true }, "");   // permite usar el botón/gesto "atrás"
   newRound();
@@ -251,6 +424,8 @@ $form.addEventListener("submit", e => {
 
 // Botón "atrás" del móvil/navegador: desde la partida vuelve al menú.
 addEventListener("popstate", () => {
+  if (ignorePop) { ignorePop = false; return; }       // lo provocó el cierre del panel con su botón
+  if (panelOpen) { closePanel(true); return; }         // "atrás" con el panel abierto: solo lo cierra
   if (document.body.classList.contains("in-setup")) return;
   if ((S.scores[0] + S.scores[1]) > 0 && !confirm("Se perderá la partida en curso. ¿Volver al inicio?")) {
     history.pushState({ game: true }, "");  // cancela: seguimos en la partida
@@ -259,12 +434,11 @@ addEventListener("popstate", () => {
   showSetup();
 });
 
-// Botón de la esquina superior izquierda (y "Ajustes"): vuelve al menú.
+// Botón de la esquina superior izquierda: vuelve al menú.
 const goBack = () => {
   if (history.state && history.state.game) history.back();  // pasa por popstate (con confirmación)
   else showSetup();
 };
-$set.addEventListener("click", goBack);
 $("#back").addEventListener("click", goBack);
 
 history.replaceState(null, "");
