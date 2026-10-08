@@ -1,4 +1,4 @@
-const CACHE_NAME = "lazona-v5";
+const CACHE_NAME = "lazona-v6";
 
 const FILES_TO_CACHE = [
   "./",
