@@ -4,7 +4,7 @@ const NS = "http://www.w3.org/2000/svg", CX = 200, CY = 220, R = 180;
 // Semiancho de la zona central (en % de la ruleta). Antes 2.5; más pequeño = más difícil.
 const W = 1.75;
 const BANDS = [[W, 2, "z2", -4 * W], [W, 3, "z3", -2 * W], [W, 4, "z4", 0], [W, 3, "z3", 2 * W], [W, 2, "z2", 4 * W]];
-const GOAL = 10, DEFAULT_NAMES = ["Jugador 1", "Jugador 2"];
+const GOAL = 1000000, DEFAULT_NAMES = ["Jugador 1", "Jugador 2"];
 let NAMES = DEFAULT_NAMES.slice();
 const S = { phase: "wait", guess: 50, target: 50, scores: [0, 0], psychic: 0, last: -1, card: null };
 const dial = $("#dial");
