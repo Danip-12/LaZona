@@ -618,3 +618,103 @@ main{
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{animation: none !important; transition: none !important}
 }
+
+/* =========================================================
+   Pantalla de inicio (nombres + categoría)
+   ========================================================= */
+.setup{display:none}
+body.in-setup header, body.in-setup main{display:none}
+body.in-setup .setup{display:flex}
+
+.setup{
+  flex: 1;
+  width: min(560px, 100%);
+  margin: 0 auto;
+  padding: calc(24px + var(--safe-top)) 18px calc(24px + var(--safe-bottom));
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  animation: rise .45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.setup .brand{align-self: center}
+.setup h1{
+  margin: 0;
+  text-align: center;
+  font: 800 clamp(1.7rem, 6vw, 2.3rem)/1.05 var(--display);
+  letter-spacing: -.02em;
+}
+.setup-sub{
+  margin: -10px 0 0;
+  text-align: center;
+  color: var(--ink-secondary);
+  font-size: .88rem;
+}
+.setup fieldset{border: 0; margin: 0; padding: 0; min-width: 0}
+.setup legend{
+  padding: 0;
+  margin-bottom: 10px;
+  color: var(--ink-secondary);
+  font: 700 .7rem/1 var(--body);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+
+.names{display: grid; grid-template-columns: 1fr 1fr; gap: 10px}
+.field{
+  --c: var(--teal);
+  --cg: var(--teal-glow);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.field.f1{--c: var(--coral); --cg: var(--coral-glow)}
+.field span{
+  color: var(--c);
+  font: 700 .66rem/1 var(--body);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.field input{
+  width: 100%;
+  min-height: 52px;
+  padding: 0 14px;
+  background: var(--card-surface);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  color: var(--ink);
+  font: 700 1rem var(--display);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.field input::placeholder{color: var(--ink-muted); font-weight: 500}
+.field input:focus{border-color: var(--c); box-shadow: 0 0 0 3px var(--cg)}
+
+.setup .btn{align-self: center; width: min(100%, 360px)}
+
+/* Botón de ajustes durante la partida */
+.settings{
+  margin-top: 4px;
+  padding: 8px 14px;
+  background: none;
+  border: 0;
+  color: var(--ink-muted);
+  font: 600 .74rem/1 var(--body);
+  letter-spacing: .06em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.settings:hover{color: var(--ink-secondary)}
+.settings:focus-visible{outline: 2px solid var(--gold); border-radius: 8px}
+@media (orientation: landscape) and (max-height: 520px){
+  .settings{grid-column: 1; grid-row: 6; align-self: start; margin: 0}
+}
+
+/* Extremos del espectro bajo la ruleta */
+.end-label{font: 800 15px var(--display); fill: var(--ink); letter-spacing: -.01em}
+.end-l{text-anchor: start}
+.end-r{text-anchor: end}
+@media (max-width: 380px){.names{grid-template-columns: 1fr; gap: 8px}}
+
+.field.f2{--c: var(--gold); --cg: var(--gold-glow)}
+.setup-note{margin: 8px 2px 0; color: var(--ink-muted); font-size: .76rem; line-height: 1.4}
