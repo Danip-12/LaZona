@@ -1,6 +1,6 @@
 {
-  "name": "Wavelength",
-  "short_name": "Wavelength",
+  "name": "La Zona",
+  "short_name": "La Zona",
   "description": "Juego de ruleta de precisión",
   "start_url": "./",
   "display": "standalone",
