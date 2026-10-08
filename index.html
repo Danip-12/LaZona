@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="La Zona">
+<meta name="apple-mobile-web-app-title" content="LA ZONA">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,7 +17,28 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
+<body class="in-setup">
+<form class="setup" id="setupForm" autocomplete="off">
+  <span class="brand">LA ZONA</span>
+  <h1>Nueva partida</h1>
+  <p class="setup-sub">Pon vuestros nombres y elige de qué va a ir el juego.</p>
+  <fieldset>
+    <legend>Jugadores</legend>
+    <div class="names">
+      <label class="field f0"><span>Jugador 1</span><input id="name0" type="text" maxlength="14" placeholder="Jugador 1" enterkeyhint="next"></label>
+      <label class="field f1"><span>Jugador 2</span><input id="name1" type="text" maxlength="14" placeholder="Jugador 2" enterkeyhint="go"></label>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>Categoría de la ruleta</legend>
+    <div class="names">
+      <label class="field f2"><span>Extremo izquierdo</span><input id="catL" type="text" maxlength="18" placeholder="Ej: Frío" required enterkeyhint="next"></label>
+      <label class="field f2"><span>Extremo derecho</span><input id="catR" type="text" maxlength="18" placeholder="Ej: Caliente" required enterkeyhint="go"></label>
+    </div>
+    <p class="setup-note">Lo que escribas aquí es lo único que se mostrará en cada lado de la ruleta.</p>
+  </fieldset>
+  <button class="btn" type="submit">Empezar partida</button>
+</form>
 <header>
   <span class="brand">LA ZONA</span>
   <div class="players" id="players" aria-live="polite"></div>
@@ -34,8 +55,8 @@
   </div>
   <button class="btn" id="action">Fijar respuesta</button>
   <p class="hint" id="hint"></p>
+  <button class="settings" id="settings" type="button">⚙ Ajustes</button>
 </main>
-<script src="js/spectra.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>
