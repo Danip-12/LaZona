@@ -2,7 +2,8 @@
 const $ = s => document.querySelector(s);
 const NS = "http://www.w3.org/2000/svg", CX = 200, CY = 220, R = 180;
 const BANDS = [[2.5, 2, "z2", -10], [2.5, 3, "z3", -5], [2.5, 4, "z4", 0], [2.5, 3, "z3", 5], [2.5, 2, "z2", 10]];
-const GOAL = 10, NAMES = ["Jugador 1", "Jugador 2"];
+const GOAL = 10, DEFAULT_NAMES = ["Jugador 1", "Jugador 2"];
+let NAMES = DEFAULT_NAMES.slice();
 const S = { phase: "wait", guess: 50, target: 50, scores: [0, 0], psychic: 0, last: -1, card: null };
 const dial = $("#dial");
 
@@ -84,6 +85,12 @@ function build() {
   el("text", { class: "marker-label" }, guessMarker).textContent = "TU RESPUESTA";
 
   el("circle", { cx: CX, cy: CY, r: 15, fill: "url(#brass)", stroke: "#0d1330", "stroke-width": 3 }, dial);
+
+  // Extremos del espectro (la carta de la ronda)
+  if (S.card) {
+    el("text", { x: 4, y: 243, class: "end-label end-l" }, dial).textContent = S.card[0];
+    el("text", { x: 396, y: 243, class: "end-label end-r" }, dial).textContent = S.card[1];
+  }
 }
 function paintTargetPointer() {
   const group = $("#targetPointer");
@@ -159,6 +166,7 @@ addEventListener("keydown", e => {
     const d = { ArrowLeft: -1.5, ArrowDown: -1.5, ArrowRight: 1.5, ArrowUp: 1.5 }[e.key];
     if (d) { e.preventDefault(); S.guess = clamp(S.guess + (e.shiftKey ? d * 4 : d)); paint(); return; }
   }
+  if (document.body.classList.contains("in-setup")) return;
   if (e.key === "Enter" && document.activeElement.tagName !== "BUTTON") { e.preventDefault(); act(); }
 });
 
@@ -177,7 +185,7 @@ function ui(title, sub, btn, hint = "") {
 }
 function newRound() {
   S.psychic = S.last < 0 ? Math.floor(Math.random() * 2) : 1 - S.last; S.last = S.psychic;
-  S.card = SPECTRA[Math.floor(Math.random() * SPECTRA.length)];
+  S.card = CAT.slice();
   S.target = Math.random() * 100; S.guess = 50; S.phase = "wait";
   $v.textContent = ""; $v.className = "verdict";
   build();
@@ -201,7 +209,49 @@ function reveal() {
   ui(won >= 0 ? "Fin de la partida" : "Resultado", `${NAMES[g]} suma ${pts}`, won >= 0 ? "Nueva partida" : "Siguiente ronda");
 }
 $b.addEventListener("click", act);
-newRound();
+
+// ---------- Pantalla de inicio: nombres y categoría escritos a mano ----------
+const KEY = "lazona:ajustes";
+const $form = $("#setupForm"), $n = [$("#name0"), $("#name1")], $cat = [$("#catL"), $("#catR")], $set = $("#settings");
+let CAT = ["", ""];
+
+const clean = (s, max = 14) => s.replace(/[<>&"'`]/g, "").replace(/\s+/g, " ").trim().slice(0, max);
+const loadSettings = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
+const saveSettings = () => { try { localStorage.setItem(KEY, JSON.stringify({ names: NAMES, cat: CAT })); } catch {} };
+
+function showSetup() {
+  const saved = loadSettings();
+  const names = saved.names || NAMES;
+  const cat = Array.isArray(saved.cat) ? saved.cat : CAT;
+  $n.forEach((inp, i) => { inp.value = names[i] === DEFAULT_NAMES[i] ? "" : names[i]; });
+  $cat.forEach((inp, i) => { inp.value = cat[i] || ""; });
+  document.body.classList.add("in-setup");
+  scrollTo(0, 0);
+  if (matchMedia("(pointer: fine)").matches) $n[0].focus();
+}
+
+$form.addEventListener("submit", e => {
+  e.preventDefault();
+  const a = clean($n[0].value) || DEFAULT_NAMES[0];
+  let b = clean($n[1].value) || DEFAULT_NAMES[1];
+  if (b.toLowerCase() === a.toLowerCase()) b += " 2";
+  const l = clean($cat[0].value, 18), r = clean($cat[1].value, 18);
+  if (!l || !r) { (l ? $cat[1] : $cat[0]).focus(); return; }
+  NAMES = [a, b];
+  CAT = [l, r];
+  saveSettings();
+  S.scores = [0, 0]; S.last = -1;
+  $set.textContent = `⚙ Ajustes · ${l} – ${r}`;
+  document.body.classList.remove("in-setup");
+  newRound();
+});
+
+$set.addEventListener("click", () => {
+  if ((S.scores[0] + S.scores[1]) > 0 && !confirm("Se perderá la partida en curso. ¿Volver al inicio?")) return;
+  showSetup();
+});
+
+showSetup();
 
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
