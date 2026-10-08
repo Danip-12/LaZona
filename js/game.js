@@ -1,7 +1,9 @@
 (() => {
 const $ = s => document.querySelector(s);
 const NS = "http://www.w3.org/2000/svg", CX = 200, CY = 220, R = 180;
-const BANDS = [[2.5, 2, "z2", -10], [2.5, 3, "z3", -5], [2.5, 4, "z4", 0], [2.5, 3, "z3", 5], [2.5, 2, "z2", 10]];
+// Semiancho de la zona central (en % de la ruleta). Antes 2.5; más pequeño = más difícil.
+const W = 1.75;
+const BANDS = [[W, 2, "z2", -4 * W], [W, 3, "z3", -2 * W], [W, 4, "z4", 0], [W, 3, "z3", 2 * W], [W, 2, "z2", 4 * W]];
 const GOAL = 10, DEFAULT_NAMES = ["Jugador 1", "Jugador 2"];
 let NAMES = DEFAULT_NAMES.slice();
 const S = { phase: "wait", guess: 50, target: 50, scores: [0, 0], psychic: 0, last: -1, card: null };
@@ -31,9 +33,9 @@ function build() {
   // Después dibujamos el aro exterior por encima para ocultar la parte que queda fuera.
   const z = el("g", { id: "zones" }, dial);
   let bands = BANDS;
-  if (S.target <= 10) {
+  if (S.target <= 5 * W) {
     bands = BANDS.map(([w, score, c, o]) => [w, score, c, Math.abs(o)]);
-  } else if (S.target >= 90) {
+  } else if (S.target >= 100 - 5 * W) {
     bands = BANDS.map(([w, score, c, o]) => [w, score, c, -Math.abs(o)]);
   }
   bands.forEach(([w, score, c, o]) => {
@@ -201,7 +203,7 @@ function act() {
 }
 function reveal() {
   const g = 1 - S.psychic, d = Math.abs(S.guess - S.target);
-  const pts = d <= 2.5 ? 4 : d <= 7.5 ? 3 : d <= 12.5 ? 2 : 0;
+  const pts = d <= W ? 4 : d <= 3 * W ? 3 : d <= 5 * W ? 2 : 0;
   S.scores[g] += pts; S.phase = "reveal";
   const [a, b] = S.scores, won = Math.max(a, b) >= GOAL && a !== b ? (a > b ? 0 : 1) : -1;
   $v.textContent = won >= 0 ? `${NAMES[won]} gana la partida` : ["Lejos. Sin puntos.", "", "Casi: +2 puntos", "Muy cerca: +3 puntos", "¡Diana! +4 puntos"][pts];
@@ -216,15 +218,16 @@ const $form = $("#setupForm"), $n = [$("#name0"), $("#name1")], $cat = [$("#catL
 let CAT = ["", ""];
 
 const clean = (s, max = 14) => s.replace(/[<>&"'`]/g, "").replace(/\s+/g, " ").trim().slice(0, max);
-const loadSettings = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
-const saveSettings = () => { try { localStorage.setItem(KEY, JSON.stringify({ names: NAMES, cat: CAT })); } catch {} };
+try { localStorage.removeItem(KEY); } catch {}  // limpia ajustes guardados por versiones anteriores
 
+// Vuelve al menú y reinicia jugadores, categoría y marcador (nada se guarda entre sesiones).
 function showSetup() {
-  const saved = loadSettings();
-  const names = saved.names || NAMES;
-  const cat = Array.isArray(saved.cat) ? saved.cat : CAT;
-  $n.forEach((inp, i) => { inp.value = names[i] === DEFAULT_NAMES[i] ? "" : names[i]; });
-  $cat.forEach((inp, i) => { inp.value = cat[i] || ""; });
+  NAMES = DEFAULT_NAMES.slice();
+  CAT = ["", ""];
+  S.scores = [0, 0]; S.last = -1; S.phase = "wait";
+  $n.forEach(inp => { inp.value = ""; });
+  $cat.forEach(inp => { inp.value = ""; });
+  $set.textContent = "⚙ Ajustes";
   document.body.classList.add("in-setup");
   scrollTo(0, 0);
   if (matchMedia("(pointer: fine)").matches) $n[0].focus();
@@ -239,18 +242,32 @@ $form.addEventListener("submit", e => {
   if (!l || !r) { (l ? $cat[1] : $cat[0]).focus(); return; }
   NAMES = [a, b];
   CAT = [l, r];
-  saveSettings();
   S.scores = [0, 0]; S.last = -1;
   $set.textContent = `⚙ Ajustes · ${l} – ${r}`;
   document.body.classList.remove("in-setup");
+  history.pushState({ game: true }, "");   // permite usar el botón/gesto "atrás"
   newRound();
 });
 
-$set.addEventListener("click", () => {
-  if ((S.scores[0] + S.scores[1]) > 0 && !confirm("Se perderá la partida en curso. ¿Volver al inicio?")) return;
+// Botón "atrás" del móvil/navegador: desde la partida vuelve al menú.
+addEventListener("popstate", () => {
+  if (document.body.classList.contains("in-setup")) return;
+  if ((S.scores[0] + S.scores[1]) > 0 && !confirm("Se perderá la partida en curso. ¿Volver al inicio?")) {
+    history.pushState({ game: true }, "");  // cancela: seguimos en la partida
+    return;
+  }
   showSetup();
 });
 
+// Botón de la esquina superior izquierda (y "Ajustes"): vuelve al menú.
+const goBack = () => {
+  if (history.state && history.state.game) history.back();  // pasa por popstate (con confirmación)
+  else showSetup();
+};
+$set.addEventListener("click", goBack);
+$("#back").addEventListener("click", goBack);
+
+history.replaceState(null, "");
 showSetup();
 
 if ("serviceWorker" in navigator) {
