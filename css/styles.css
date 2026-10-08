@@ -29,8 +29,27 @@
   --display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
   --body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
   
+  /* Variantes de color para texto/bordes (en el tema claro son más oscuras para dar contraste) */
+  --teal-ink: var(--teal);
+  --coral-ink: var(--coral);
+  --gold-ink: var(--gold);
+  --on-accent: #060913;
+  --ring: #ffffff;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.2);
+  --well: rgba(0, 0, 0, 0.28);
+
+  /* Colores de la ruleta */
+  --dial-face: #0d1330;
+  --dial-shield: #161d4a;
+  --needle: #ffffff;
+  --tick: rgba(255, 255, 255, 0.22);
+  --tick-m: rgba(255, 255, 255, 0.85);
+
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
   --chrome: 390px;
 }
 
@@ -41,6 +60,8 @@ html{
   background: var(--bg-board);
   color-scheme: dark;
   -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+  overscroll-behavior: none;
 }
 
 body{
@@ -53,6 +74,11 @@ body{
   color: var(--ink);
   overflow-x: hidden;
   overscroll-behavior: none;
+  touch-action: manipulation;          /* sin zoom por doble toque en móvil */
+  -webkit-tap-highlight-color: transparent;
+  /* Respeta el notch / bordes redondeados al girar el móvil */
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
   -webkit-font-smoothing: antialiased;
   /* Fondo estilo tablero de fieltro mate con iluminación cenital */
   background:
@@ -108,7 +134,7 @@ header{
 
 /* Fichas de equipo (Estilo placas de torneo de mesa) */
 .pl{
-  --c: var(--teal);
+  --c: var(--teal-ink);
   --cg: var(--teal-glow);
   grid-row: 1;
   min-width: 0;
@@ -128,7 +154,7 @@ header{
 .p0{
   grid-column: 1;
   justify-self: start;
-  --c: var(--teal);
+  --c: var(--teal-ink);
   --cg: var(--teal-glow);
 }
 
@@ -136,7 +162,7 @@ header{
   grid-column: 3;
   justify-self: end;
   flex-direction: row-reverse;
-  --c: var(--coral);
+  --c: var(--coral-ink);
   --cg: var(--coral-glow);
 }
 
@@ -192,7 +218,7 @@ header{
 
 .pl.on b{
   background: var(--c);
-  color: #060913;
+  color: var(--on-accent);
   box-shadow: 0 2px 8px var(--cg);
 }
 
@@ -283,8 +309,13 @@ main{
 }
 
 /* Marcas de calibración del dial */
-.tick{stroke: rgba(255, 255, 255, 0.22); stroke-width: 1; stroke-linecap: round}
-.tick.m{stroke: rgba(255, 255, 255, 0.85); stroke-width: 2}
+.tick{stroke: var(--tick); stroke-width: 1; stroke-linecap: round}
+.tick.m{stroke: var(--tick-m); stroke-width: 2}
+
+/* Piezas de la ruleta que cambian con el tema */
+.dial-face{fill: var(--dial-face)}
+.dial-shield{fill: var(--dial-shield)}
+.dial-hub{stroke: var(--dial-face)}
 
 /* Segmentos de puntuación */
 .z2, .z3, .z4{stroke: none}
@@ -323,7 +354,7 @@ main{
 }
 .target-point{
   fill: var(--red);
-  stroke: #fff;
+  stroke: var(--needle);
   stroke-width: 2.5;
   filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
 }
@@ -355,14 +386,14 @@ main{
 #needle.gone{opacity: 0}
 
 .needle{
-  stroke: #ffffff;
+  stroke: var(--needle);
   stroke-width: 3.2;
   stroke-linecap: round;
 }
 
 .knob{
   fill: var(--gold);
-  stroke: #ffffff;
+  stroke: var(--needle);
   stroke-width: 2.8;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
 }
@@ -388,9 +419,9 @@ main{
 }
 
 .verdict.show{opacity: 1; transform: translateY(0)}
-.verdict.p4{color: var(--gold); text-shadow: 0 0 20px var(--gold-glow)}
-.verdict.p3{color: var(--coral); text-shadow: 0 0 20px var(--coral-glow)}
-.verdict.p2{color: var(--teal); text-shadow: 0 0 20px var(--teal-glow)}
+.verdict.p4{color: var(--gold-ink); text-shadow: 0 0 20px var(--gold-glow)}
+.verdict.p3{color: var(--coral-ink); text-shadow: 0 0 20px var(--coral-glow)}
+.verdict.p2{color: var(--teal-ink); text-shadow: 0 0 20px var(--teal-glow)}
 .verdict.p0{color: var(--ink-muted)}
 
 .lg{
@@ -420,8 +451,13 @@ main{
   box-shadow: 0 0 6px var(--dot);
 }
 
-.lg-target{justify-self: end}
-.lg-guess{justify-self: start; --dot: var(--gold)}
+.lg-target{grid-column: 1; grid-row: 1; justify-self: end}
+.verdict{grid-column: 2; grid-row: 1; text-align: center}
+.lg-guess{grid-column: 3; grid-row: 1; justify-self: start; --dot: var(--gold)}
+/* En PC el veredicto cabe siempre en una línea, centrado entre las dos etiquetas */
+@media (min-width: 641px) and (min-height: 521px){
+  .verdict{white-space: nowrap}
+}
 .result:has(.verdict.show) .lg{opacity: 1}
 @supports not selector(:has(*)){.lg{display: none}}
 
@@ -449,13 +485,16 @@ main{
   -webkit-tap-highlight-color: transparent;
 }
 
-.btn:hover{
-  filter: brightness(1.08);
-  box-shadow:
-    0 14px 28px -6px rgba(245, 185, 66, 0.65),
-    0 2px 6px rgba(0,0,0,0.4),
-    inset 0 1px 1px rgba(255,255,255,0.8);
-  transform: translateY(-2px);
+/* El efecto hover solo en dispositivos con ratón (en móvil se quedaría "pegado" tras tocar) */
+@media (hover: hover){
+  .btn:hover{
+    filter: brightness(1.08);
+    box-shadow:
+      0 14px 28px -6px rgba(245, 185, 66, 0.65),
+      0 2px 6px rgba(0,0,0,0.4),
+      inset 0 1px 1px rgba(255,255,255,0.8);
+    transform: translateY(-2px);
+  }
 }
 
 .btn:active{
@@ -466,7 +505,7 @@ main{
 }
 
 .btn:focus-visible{
-  outline: 2px solid #fff;
+  outline: 2px solid var(--ring);
   outline-offset: 3px;
 }
 
@@ -484,9 +523,9 @@ main{
 
 /* ---------- Marcadores de resultado ---------- */
 .result-marker{pointer-events: none}
-.result-marker .marker-line{stroke: #fff; stroke-width: 2; stroke-linecap: round; opacity: .9}
-.result-marker .marker-dot{stroke: #fff; stroke-width: 2.5}
-.marker-label{font: 800 11px var(--display); fill: #fff; text-anchor: middle}
+.result-marker .marker-line{stroke: var(--needle); stroke-width: 2; stroke-linecap: round; opacity: .9}
+.result-marker .marker-dot{stroke: var(--needle); stroke-width: 2.5}
+.marker-label{font: 800 11px var(--display); fill: var(--needle); text-anchor: middle}
 #resultMarkers{opacity: 0; transition: opacity .35s ease}
 #resultMarkers.on{opacity: 1}
 .target-marker .marker-dot{fill: var(--red)}
@@ -661,14 +700,14 @@ body.in-setup .setup{display:flex}
 
 .names{display: grid; grid-template-columns: 1fr 1fr; gap: 10px}
 .field{
-  --c: var(--teal);
+  --c: var(--teal-ink);
   --cg: var(--teal-glow);
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
 }
-.field.f1{--c: var(--coral); --cg: var(--coral-glow)}
+.field.f1{--c: var(--coral-ink); --cg: var(--coral-glow)}
 .field span{
   color: var(--c);
   font: 700 .66rem/1 var(--body);
@@ -692,31 +731,13 @@ body.in-setup .setup{display:flex}
 
 .setup .btn{align-self: center; width: min(100%, 360px)}
 
-/* Botón de ajustes durante la partida */
-.settings{
-  margin-top: 4px;
-  padding: 8px 14px;
-  background: none;
-  border: 0;
-  color: var(--ink-muted);
-  font: 600 .74rem/1 var(--body);
-  letter-spacing: .06em;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.settings:hover{color: var(--ink-secondary)}
-.settings:focus-visible{outline: 2px solid var(--gold); border-radius: 8px}
-@media (orientation: landscape) and (max-height: 520px){
-  .settings{grid-column: 1; grid-row: 6; align-self: start; margin: 0}
-}
-
 /* Extremos del espectro bajo la ruleta */
 .end-label{font: 800 15px var(--display); fill: var(--ink); letter-spacing: -.01em}
 .end-l{text-anchor: start}
 .end-r{text-anchor: end}
 @media (max-width: 380px){.names{grid-template-columns: 1fr; gap: 8px}}
 
-.field.f2{--c: var(--gold); --cg: var(--gold-glow)}
+.field.f2{--c: var(--gold-ink); --cg: var(--gold-glow)}
 .setup-note{margin: 8px 2px 0; color: var(--ink-muted); font-size: .76rem; line-height: 1.4}
 
 
@@ -731,7 +752,7 @@ header{position: relative}
 .back{
   position: absolute;
   z-index: 5;
-  left: calc(10px + env(safe-area-inset-left, 0px));
+  left: 10px;
   top: calc(var(--safe-top) + 12px);
   width: 38px;
   height: 38px;
@@ -750,16 +771,370 @@ header{position: relative}
 }
 .back::after{content: ""; position: absolute; inset: -6px}  /* zona táctil más grande */
 .back svg{width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round}
-.back:hover{background: rgba(255, 255, 255, 0.1); border-color: var(--gold)}
+@media (hover: hover){.back:hover{background: rgba(255, 255, 255, 0.1); border-color: var(--gold)}}
 .back:active{transform: scale(.92)}
 .back:focus-visible{outline: 2px solid var(--gold); outline-offset: 2px}
 @media (max-width: 640px){
-  .back{left: calc(12px + env(safe-area-inset-left, 0px)); top: calc(var(--safe-top) + 10px); width: 34px; height: 34px}
+  .back{left: 12px; top: calc(var(--safe-top) + 10px); width: 34px; height: 34px}
 }
 @media (max-width: 640px) and (max-height: 700px){
   .back{top: calc(var(--safe-top) + 5px); width: 30px; height: 30px}
 }
 @media (orientation: landscape) and (max-height: 520px){
-  header{padding-left: calc(52px + env(safe-area-inset-left, 0px)); padding-right: 52px}
+  header{padding-left: 52px; padding-right: 52px}
   .back{top: calc(var(--safe-top) + 5px); width: 30px; height: 30px}
+}
+
+
+/* =========================================================
+   Botón de ajustes (esquina superior derecha)
+   ========================================================= */
+.gear{
+  position: fixed;
+  z-index: 30;
+  right: calc(var(--safe-right) + 10px + max(0px, (100vw - var(--safe-left) - var(--safe-right) - 1040px) / 2));
+  top: calc(var(--safe-top) + 12px);
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  border-radius: 50%;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.25);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .2s, transform .15s, border-color .2s;
+}
+.gear::after{content: ""; position: absolute; inset: -6px}  /* zona táctil más grande */
+.gear svg{width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; transition: transform .45s cubic-bezier(.16, 1, .3, 1)}
+@media (hover: hover){
+  .gear:hover{background: rgba(255, 255, 255, 0.1); border-color: var(--gold)}
+  .gear:hover svg{transform: rotate(45deg)}
+}
+.gear:active{transform: scale(.92)}
+.gear[aria-expanded="true"] svg{transform: rotate(60deg)}
+.gear:focus-visible{outline: 2px solid var(--gold); outline-offset: 2px}
+@media (max-width: 640px){
+  .gear{right: calc(var(--safe-right) + 12px); top: calc(var(--safe-top) + 10px); width: 34px; height: 34px}
+}
+@media (max-width: 640px) and (max-height: 700px){
+  .gear{top: calc(var(--safe-top) + 5px); width: 30px; height: 30px}
+}
+@media (orientation: landscape) and (max-height: 520px){
+  .gear{top: calc(var(--safe-top) + 5px); right: calc(var(--safe-right) + 10px); width: 30px; height: 30px}
+}
+
+/* =========================================================
+   Panel de ajustes superpuesto
+   ========================================================= */
+body.modal-open{overflow: hidden}
+
+.overlay{
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
+  background: rgba(3, 6, 16, 0.62);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity .22s ease;
+  overscroll-behavior: contain;
+}
+.overlay[hidden]{display: none}
+.overlay.open{opacity: 1}
+
+.sheet{
+  width: min(460px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--card-surface);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+  outline: none;
+  transform: translateY(14px) scale(.98);
+  transition: transform .28s cubic-bezier(.16, 1, .3, 1);
+}
+.overlay.open .sheet{transform: none}
+
+.sheet-head{
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 10px 22px;
+  touch-action: none;
+}
+.sheet-head h2{margin: 0; font: 800 1.3rem/1 var(--display); letter-spacing: -.01em}
+.sheet-close{
+  position: relative;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.sheet-close::after{content: ""; position: absolute; inset: -6px}
+.sheet-close svg{width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round}
+.sheet-close:active{transform: scale(.92)}
+.sheet-close:focus-visible{outline: 2px solid var(--gold); outline-offset: 2px}
+
+.sheet-body{
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 2px 22px 22px;
+}
+
+.set-sec{margin: 0 0 14px}
+.set-sec h3{
+  margin: 6px 0 2px;
+  color: var(--ink-secondary);
+  font: 700 .68rem/1 var(--body);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+.set-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 56px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  cursor: pointer;
+}
+.set-sec h3 + .set-row{border-top: 0}
+.set-row[hidden]{display: none}
+.set-row.stack{flex-direction: column; align-items: stretch; gap: 10px; cursor: default}
+.set-txt{min-width: 0}
+.set-txt b{display: block; font: 700 .95rem/1.25 var(--body)}
+.set-txt small{display: block; margin-top: 3px; color: var(--ink-muted); font-size: .78rem; line-height: 1.35}
+
+/* Selector segmentado (radios) */
+.seg{
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.seg label{position: relative; display: block; min-width: 0; cursor: pointer}
+.seg input{position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer}
+.seg span{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 10px;
+  color: var(--ink-secondary);
+  font: 700 .86rem/1.1 var(--body);
+  text-align: center;
+  transition: background .2s, color .2s, box-shadow .2s;
+}
+.seg input:checked + span{background: var(--gold); color: #120e03; box-shadow: 0 2px 8px var(--gold-glow)}
+.seg input:focus-visible + span{outline: 2px solid var(--ring); outline-offset: 2px}
+
+/* Interruptor */
+.switch{
+  -webkit-appearance: none;
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 52px;
+  height: 30px;
+  margin: 0;
+  background: var(--well);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+}
+.switch::after{
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ink-secondary);
+  transition: transform .22s cubic-bezier(.16, 1, .3, 1), background .2s;
+}
+.switch:checked{background: var(--gold); border-color: var(--gold)}
+.switch:checked::after{transform: translateX(22px); background: #fff}
+.switch:focus-visible{outline: 2px solid var(--ring); outline-offset: 2px}
+
+.set-reset{
+  width: 100%;
+  min-height: 48px;
+  margin-top: 4px;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  color: var(--ink-secondary);
+  font: 700 .86rem/1 var(--body);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.set-reset:active{transform: scale(.98)}
+.set-reset:focus-visible{outline: 2px solid var(--ring); outline-offset: 2px}
+.set-note{margin: 14px 4px 0; color: var(--ink-muted); font-size: .76rem; line-height: 1.45; text-align: center}
+
+/* En móvil el panel sube desde abajo como una hoja */
+@media (max-width: 640px){
+  .overlay{align-items: flex-end; padding: 0 var(--safe-right) 0 var(--safe-left)}
+  .sheet{
+    width: 100%;
+    max-height: 90vh;
+    max-height: 90dvh;
+    border-radius: 24px 24px 0 0;
+    border-bottom: 0;
+    transform: translateY(100%);
+  }
+  .sheet-head{position: relative; padding-top: 24px}
+  .sheet-head::before{
+    content: "";
+    position: absolute;
+    top: 9px;
+    left: 50%;
+    width: 42px;
+    height: 4px;
+    margin-left: -21px;
+    border-radius: 4px;
+    background: var(--line-strong);
+  }
+  .sheet-body{padding: 2px 18px calc(22px + var(--safe-bottom))}
+}
+
+/* Reducir animaciones (opción del panel de ajustes) */
+html[data-reduce="1"] *, html[data-reduce="1"] *::before, html[data-reduce="1"] *::after{
+  animation: none !important;
+  transition: none !important;
+}
+
+/* =========================================================
+   Tema claro
+   ========================================================= */
+html[data-theme="light"]{
+  color-scheme: light;
+  --bg-board: #f3eee2;
+  --bg-felt: #ebe5d6;
+  --card-surface: #fffdf8;
+  --card-border: rgba(32, 40, 78, 0.14);
+
+  --ink: #171d3d;
+  --ink-secondary: #4a5478;
+  --ink-muted: #5d6788;
+
+  --gold-glow: rgba(217, 150, 30, 0.26);
+  --teal-glow: rgba(13, 148, 136, 0.2);
+  --coral-glow: rgba(224, 80, 40, 0.2);
+  --red: #e11d48;
+
+  --teal-ink: #0f766e;
+  --coral-ink: #c2410c;
+  --gold-ink: #a16207;
+  --on-accent: #ffffff;
+  --ring: #171d3d;
+  --line: rgba(32, 40, 78, 0.1);
+  --line-strong: rgba(32, 40, 78, 0.26);
+  --well: rgba(32, 40, 78, 0.07);
+
+  --dial-face: #e8e1cf;
+  --dial-shield: #c4c9e4;
+  --needle: #171d3d;
+  --tick: rgba(23, 29, 61, 0.28);
+  --tick-m: rgba(23, 29, 61, 0.8);
+}
+html[data-theme="light"] body{
+  background:
+    radial-gradient(ellipse 900px 520px at 50% -10%, rgba(255, 255, 255, 0.95), transparent 70%),
+    radial-gradient(circle 800px at 50% 110%, rgba(214, 205, 180, 0.7), transparent 80%),
+    var(--bg-board);
+  background-attachment: fixed;
+}
+html[data-theme="light"] .brand,
+html[data-theme="light"] .back,
+html[data-theme="light"] .gear{
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 1px 1px #fff, 0 4px 12px rgba(60, 50, 20, 0.14);
+}
+html[data-theme="light"] .pl{
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(32, 40, 78, 0.1);
+  box-shadow: 0 4px 10px rgba(60, 50, 20, 0.08);
+}
+html[data-theme="light"] .pl.on{
+  background: #fff;
+  border-color: var(--c);
+  box-shadow: 0 4px 18px var(--cg), 0 2px 6px rgba(60, 50, 20, 0.12);
+}
+html[data-theme="light"] .pl b{
+  background: rgba(32, 40, 78, 0.06);
+  border-color: rgba(32, 40, 78, 0.1);
+  box-shadow: inset 0 2px 3px rgba(32, 40, 78, 0.1);
+}
+html[data-theme="light"] .pl.on b{
+  background: var(--c);
+  border-color: transparent;
+  box-shadow: 0 2px 8px var(--cg);
+}
+html[data-theme="light"] .clue{
+  box-shadow:
+    0 12px 26px -10px rgba(60, 50, 20, 0.28),
+    inset 0 1px 0 #fff,
+    inset 0 -1px 0 rgba(32, 40, 78, 0.06);
+}
+html[data-theme="light"] .lg{
+  background: rgba(32, 40, 78, 0.04);
+  border-color: rgba(32, 40, 78, 0.1);
+}
+html[data-theme="light"] #dial{filter: drop-shadow(0 16px 22px rgba(60, 50, 20, 0.3))}
+html[data-theme="light"] .q{fill: #5f6aa8; fill-opacity: .55}
+html[data-theme="light"] .field input{box-shadow: inset 0 1px 2px rgba(32, 40, 78, 0.06)}
+html[data-theme="light"] .overlay{background: rgba(40, 44, 70, 0.4)}
+html[data-theme="light"] .sheet{
+  box-shadow: 0 30px 60px -16px rgba(40, 44, 70, 0.4), inset 0 1px 0 #fff;
+}
+@media (hover: hover){
+  html[data-theme="light"] .back:hover,
+  html[data-theme="light"] .gear:hover{background: #fff}
+}
+/* App instalada en iPhone: la barra de estado es blanca; en tema claro se le pone una franja oscura detrás */
+@media (display-mode: standalone){
+  html[data-theme="light"] body::before{
+    content: "";
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--safe-top);
+    background: #0d1330;
+    z-index: 40;
+    pointer-events: none;
+  }
 }
