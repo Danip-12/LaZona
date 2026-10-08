@@ -5,16 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>LA ZONA</title>
 <meta name="theme-color" content="#060914">
+<meta name="color-scheme" content="dark light">
 <meta name="description" content="LA ZONA">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="LA ZONA">
+<meta name="format-detection" content="telephone=no">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script>
+/* Aplica el tema y la preferencia de animaciones antes de pintar (evita el parpadeo). */
+(function () {
+  var root = document.documentElement, t = "dark";
+  try {
+    var p = JSON.parse(localStorage.getItem("lazona:prefs") || "{}");
+    t = p.theme === "light" || p.theme === "auto" ? p.theme : "dark";
+    if (t === "auto") t = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    if (p.reduceMotion === true) root.setAttribute("data-reduce", "1");
+  } catch (e) {}
+  root.setAttribute("data-theme", t);
+  var m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute("content", t === "light" ? "#f3eee2" : "#060914");
+})();
+</script>
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="in-setup">
@@ -56,8 +73,80 @@
   </div>
   <button class="btn" id="action">Fijar respuesta</button>
   <p class="hint" id="hint"></p>
-  <button class="settings" id="settings" type="button">⚙ Ajustes</button>
 </main>
+
+<!-- Botón de ajustes (esquina superior derecha) -->
+<button class="gear" id="gear" type="button" aria-label="Abrir ajustes" title="Ajustes" aria-haspopup="dialog" aria-controls="settingsPanel" aria-expanded="false">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+</button>
+
+<!-- Panel de ajustes superpuesto -->
+<div class="overlay" id="overlay" hidden>
+  <div class="sheet" id="settingsPanel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1">
+    <div class="sheet-head">
+      <h2 id="sheetTitle">Ajustes</h2>
+      <button class="sheet-close" id="sheetClose" type="button" aria-label="Cerrar ajustes" title="Cerrar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="sheet-body">
+
+      <section class="set-sec">
+        <h3>Apariencia</h3>
+        <div class="set-row stack">
+          <div class="set-txt"><b>Tema</b><small>«Auto» sigue el modo de tu dispositivo.</small></div>
+          <div class="seg" role="radiogroup" aria-label="Tema">
+            <label><input type="radio" name="theme" value="light"><span>☀ Claro</span></label>
+            <label><input type="radio" name="theme" value="dark"><span>☾ Oscuro</span></label>
+            <label><input type="radio" name="theme" value="auto"><span>Auto</span></label>
+          </div>
+        </div>
+        <label class="set-row">
+          <span class="set-txt"><b>Reducir animaciones</b><small>Menos movimiento en la ruleta y los textos.</small></span>
+          <input class="switch" type="checkbox" id="optMotion" role="switch">
+        </label>
+      </section>
+
+      <section class="set-sec">
+        <h3>Partida</h3>
+        <div class="set-row stack">
+          <div class="set-txt"><b>Dificultad</b><small>Tamaño de la zona de puntos. Se aplica desde la siguiente ronda.</small></div>
+          <div class="seg" role="radiogroup" aria-label="Dificultad">
+            <label><input type="radio" name="difficulty" value="easy"><span>Fácil</span></label>
+            <label><input type="radio" name="difficulty" value="normal"><span>Normal</span></label>
+            <label><input type="radio" name="difficulty" value="hard"><span>Difícil</span></label>
+          </div>
+        </div>
+        <div class="set-row stack">
+          <div class="set-txt"><b>Puntos para ganar</b><small>Gana quien llegue primero. Con «Infinito» la partida no termina nunca.</small></div>
+          <div class="seg" role="radiogroup" aria-label="Puntos para ganar">
+            <label><input type="radio" name="goal" value="10"><span>10</span></label>
+            <label><input type="radio" name="goal" value="15"><span>15</span></label>
+            <label><input type="radio" name="goal" value="0"><span>Infinito ∞</span></label>
+          </div>
+        </div>
+        <label class="set-row">
+          <span class="set-txt"><b>Mostrar ayudas</b><small>Textos de consejo bajo el botón.</small></span>
+          <input class="switch" type="checkbox" id="optHints" role="switch">
+        </label>
+      </section>
+
+      <section class="set-sec">
+        <h3>Sonido y tacto</h3>
+        <label class="set-row">
+          <span class="set-txt"><b>Sonidos</b><small>Un aviso breve al revelar el resultado.</small></span>
+          <input class="switch" type="checkbox" id="optSound" role="switch">
+        </label>
+        <label class="set-row" id="rowVibrate">
+          <span class="set-txt"><b>Vibración</b><small>Vibra al revelar el resultado (móviles compatibles).</small></span>
+          <input class="switch" type="checkbox" id="optVibrate" role="switch">
+        </label>
+      </section>
+
+      <button class="set-reset" id="resetPrefs" type="button">Restablecer ajustes</button>
+      <p class="set-note">Los jugadores y la categoría se cambian al volver al menú con la flecha de la esquina superior izquierda.</p>
+    </div>
+  </div>
+</div>
+
 <script src="js/game.js"></script>
 </body>
 </html>
